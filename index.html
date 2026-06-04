@@ -144,7 +144,7 @@
   <div class="nav-section">Reviewers</div>
   <a class="nav-link" data-page="parma">Parma <span class="badge">DataUpload</span></a>
   <a class="nav-link" data-page="kyle">Kyle <span class="badge">Copy Svc</span></a>
-  <a class="nav-link" data-page="veda">Veda + Santosh <span class="badge">GMS/Export</span></a>
+  <a class="nav-link" data-page="veda">Veda <span class="badge">GMS/Export</span></a>
   <a class="nav-link" data-page="santosh">Santosh <span class="badge">Tests</span></a>
 
   <div class="nav-section">Reference</div>
@@ -166,6 +166,13 @@
       <span><b>Target:</b> <code>master</code></span>
       <span><b>Scope:</b> 454 file changes / 381 files</span>
     </div>
+  </div>
+
+  <div class="card" style="border-left:4px solid var(--yellow);background:#2a2418">
+    <h3 style="margin-top:0;color:var(--yellow)">⚠ Important — read before you start</h3>
+    <p>This guide is designed to make it <b>easier for each reviewer to focus on their areas</b> — it groups files by ownership and highlights the bug fixes that matter for each track.</p>
+    <p style="margin:8px 0"><b>It is NOT a substitute for a full review.</b> Every reviewer is expected to <b>glance at all the data-path changes in the PR at least once</b>, beyond just the files called out here. The guide is a navigation aid; it may not cover every relevant change.</p>
+    <p style="margin:8px 0 0">If you notice something that should be in your section but isn't listed, please flag it — and review it anyway.</p>
   </div>
 
   <div class="stat-grid">
@@ -314,18 +321,24 @@
     ["src/managed/Tools/DataUploadPerf/DataUploadPerf.csproj",""],
     ["src/managed/Tools/DataUploadPerf/Program.cs",""]
   ]'></div>
-</section>
 
-<!-- ========== KYLE ========== -->
+  <h3>Native HcsCore — shared data-path foundations (skim)</h3>
+  <p style="font-size:12px;color:var(--muted);margin:4px 0 8px">HcsCore is shared infra; DataUpload native worker calls into FsLib and Probe. Skim these — Kyle owns deep review, but flag anything that affects upload semantics.</p>
+  <div class="file-list" data-files='[
+    ["src/native/HcsCore/FsLibHandler/FsLibItemContext.h",""],
+    ["src/native/HcsCore/Probe.cpp","BUG 13 (Probe uninit)"]
+  ]'></div>
+</section>
 <section class="page" id="kyle">
-  <div class="reviewer-hdr"><div class="avatar kyle">K</div><div><h1 style="margin:0">Kyle</h1><div style="color:var(--muted);font-size:12.5px">Copy Service — DataIngestion + DataCopy + FileRecord</div></div></div>
+  <div class="reviewer-hdr"><div class="avatar kyle">K</div><div><h1 style="margin:0">Kyle</h1><div style="color:var(--muted);font-size:12.5px">DataIngestion + FileRecord + DiskTools + HcsCore (native)</div></div></div>
   <div class="card tight">
     <span class="label">Bugs in your scope:</span>
     <span class="pill">BUG 1 SEHException</span>
+    <span class="pill">BUG 3 FileRecord ReadExactly</span>
     <span class="pill">BUG 7 IORetry</span>
     <span class="pill">BUG 8 HTTP/1.1</span>
     <span class="pill">BUG 9 bool P/Invoke</span>
-    <span class="pill">BUG 10 URI encoding</span>
+    <span class="pill">BUG 13 Probe uninit</span>
   </div>
 
   <h3>Managed DataIngestion (6)</h3>
@@ -336,17 +349,6 @@
     ["src/managed/Microsoft.Hcs/DataIngestion/DataIngestionService.cs",""],
     ["src/managed/Microsoft.Hcs/DataIngestion/IngestionAgent/DataIngestionAgent.cs",""],
     ["src/managed/Microsoft.Hcs/DataIngestion/IngestionAgent/IngestionNativeConfiguration.cs",""]
-  ]'></div>
-
-  <h3>Managed DataCopy (7)</h3>
-  <div class="file-list" data-files='[
-    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/CloudRecordAgent.cs",""],
-    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/DataCopyAgent.cs",""],
-    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/NativeCopyConfiguration.cs",""],
-    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyCreationParameter.cs",""],
-    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyOrchestrator.cs",""],
-    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyService.cs",""],
-    ["src/managed/Microsoft.Hcs/DataCopy/Helpers/DataCopyHelper.cs",""]
   ]'></div>
 
   <h3>Managed FileRecord (1)</h3>
@@ -361,23 +363,39 @@
     ["src/native/HcsPod/DataIngestion/DataIngestionWorker.cpp",""]
   ]'></div>
 
-  <h3>Native DataCopy (8)</h3>
-  <div class="file-list" data-files='[
-    ["src/native/HcsPod/DataCopy/CloudEnumerator/CloudRecord.cpp",""],
-    ["src/native/HcsPod/DataCopy/CloudEnumerator/Metadata/Node/CloudRecordEnumCloudMetadata.cpp",""],
-    ["src/native/HcsPod/DataCopy/CloudEnumerator/Metadata/Shared/CloudMetadataBlobUtility.cpp",""],
-    ["src/native/HcsPod/DataCopy/DataCopyWorkItemManager.cpp",""],
-    ["src/native/HcsPod/DataCopy/DataCopyWorkItemManager.h",""],
-    ["src/native/HcsPod/DataCopy/DataCopyWorkProcessor.cpp",""],
-    ["src/native/HcsPod/DataCopy/DataCopyWorker.cpp",""]
-  ]'></div>
-
   <h3>Native FileRecord (4)</h3>
   <div class="file-list" data-files='[
     ["src/native/HcsPod/FileRecord/FileRecord.cpp",""],
     ["src/native/HcsPod/FileRecord/FileRecord.h",""],
     ["src/native/HcsPod/FileRecord/FileRecordEnumCloudMetadata.cpp",""],
     ["src/native/HcsPod/FileRecord/ManifestRecord.cpp",""]
+  ]'></div>
+
+  <h3>Native HcsCore — data-path foundations (4)</h3>
+  <p style="font-size:12px;color:var(--muted);margin:4px 0 8px">HcsCore is shared infra used by FileRecord, DataIngestion, and DataCopy. These changes are crucial to the data path.</p>
+  <div class="file-list" data-files='[
+    ["src/native/HcsCore/FsLibHandler/FsLibItemContext.h","FsLib context — used by FileRecord/Ingestion P/Invoke surface"],
+    ["src/native/HcsCore/Probe.cpp","BUG 13 — Probe member uninitialized; monitor thread crash on .NET 10"],
+    ["src/native/HcsCore/Utilities/CommonUtils.h","shared utility helpers"],
+    ["src/native/HcsCore/Diagnostics/TraceLogger.h","trace logger header"]
+  ]'></div>
+
+  <h3>DiskTools (13)</h3>
+  <p style="font-size:12px;color:var(--muted);margin:4px 0 8px">Disk-side toolset for ingestion (DataBoxDiskUnlock, AzImport V1/V2). Mostly csproj retargets + a few code touch-ups.</p>
+  <div class="file-list" data-files='[
+    ["src/tools/DiskTools/Common/CommonUtilities/CommonUtilities.csproj",""],
+    ["src/tools/DiskTools/Common/CommonUtilities/DeviceReader.cs",""],
+    ["src/tools/DiskTools/Common/CommonUtilities/HashHelper.cs",""],
+    ["src/tools/DiskTools/Common/CommonUtilities/Utils.cs",""],
+    ["src/tools/DiskTools/Common/XsdEx/XsdEx.csproj",""],
+    ["src/tools/DiskTools/Common/hddid/hddid.vcxproj",""],
+    ["src/tools/DiskTools/DataBoxDiskTools/DataBoxDiskUnlock/DataBoxDiskUnlock.csproj",""],
+    ["src/tools/DiskTools/DataBoxDiskTools/DataBoxDiskUnlock/Utils.cs",""],
+    ["src/tools/DiskTools/WaImportExportV1/AzImportDll/AzImportV1Dll.csproj",""],
+    ["src/tools/DiskTools/WaImportExportV1/AzImportExe/AzImportV1Exe.csproj",""],
+    ["src/tools/DiskTools/WaImportExportV2/AzImportDll/AzImportV2Dll.csproj",""],
+    ["src/tools/DiskTools/WaImportExportV2/AzImportDll/Commands/CopyFiles/ItemListCopyState.cs",""],
+    ["src/tools/DiskTools/WaImportExportV2/AzImportExe/AzImportV2Exe.csproj",""]
   ]'></div>
 
   <h3>Tool (2)</h3>
@@ -389,7 +407,7 @@
 
 <!-- ========== VEDA + SANTOSH ========== -->
 <section class="page" id="veda">
-  <div class="reviewer-hdr"><div class="avatar veda">V</div><div><h1 style="margin:0">Veda + Santosh</h1><div style="color:var(--muted);font-size:12.5px">DataExport + GMS (Gateway Manager Service)</div></div></div>
+  <div class="reviewer-hdr"><div class="avatar veda">V</div><div><h1 style="margin:0">Veda</h1><div style="color:var(--muted);font-size:12.5px">DataExport + GMS (Gateway Manager Service)</div></div></div>
   <div class="card tight">
     <span class="label">Bugs in your scope:</span>
     <span class="pill">BUG 11 BouncyCastle → built-in PEM</span>
@@ -439,8 +457,9 @@
     <span class="label">Bugs in your scope:</span>
     <span class="pill">BUG 2 DataIngestion timing</span>
     <span class="pill">BUG 4/5 FsLib deadlock + ns</span>
+    <span class="pill">BUG 8 HTTP/1.1 (CloudRecordTests)</span>
+    <span class="pill">BUG 10 URI encoding</span>
     <span class="pill">BUG 12 X509Cert obsolete</span>
-    <span class="pill">BUG 14 SaaS timeout</span>
   </div>
 
   <h3>Unit Tests — Pod / DataPath (12)</h3>
@@ -459,26 +478,11 @@
     ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/Helper/","4 helpers"]
   ]'></div>
 
-  <h3>Unit Tests — Management / Infra (10+)</h3>
+  <h3>Unit Tests — shared csproj / runner</h3>
   <div class="file-list" data-files='[
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Management/PodManagementServiceTests.cs","BUG 14 (timeout bump)"],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Management/ManagementServiceTests.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/CloudStorage/CloudAccess/CloudAccessTest.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Configuration/MinConfigurationTest.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Core/Fabric/FabricUnitTestBase.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Core/ServiceBus/HcsServiceBusTests.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Dbx/StorageMgmtVmTests.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/HcsTest.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Misc/InstantiatorTest.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/SlotManagement/SlotMgmtTests.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Statistics/FilePersistedCounterTests.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Storage/AccessPointFactoryTest.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/SupportPackage/SupportPackageImmutabilityTests.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Test/DataCopyValidationLibraryTests.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/TestBase.cs",""],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Update/UpdateTestUtils.cs",""],
     ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Microsoft.Hcs.UnitTests.csproj","target framework + package upgrades"],
-    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/_Content/runtest.ps1",""]
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/_Content/runtest.ps1",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/TestBase.cs",""]
   ]'></div>
 
   <h3>BVTs (6) — src/Test/PodTests/BVTs/</h3>
@@ -514,14 +518,8 @@
     ["MockSaasSdk/StaticConfiguration.cs",""]
   ]'></div>
 
-  <h3>E2E / SaaS Channel (6)</h3>
-  <div class="file-list" data-files='[
-    ["src/Test/DataboxE2E/Microsoft.DataBox.E2E.Tests/",""],
-    ["src/Test/DataboxE2E/Microsoft.Databox.SaaSCommunicationHelper/SaaSOperationsHelper.cs",""],
-    ["src/Test/DataboxE2E/Microsoft.Databox.SaaSCommunicationHelper/TestValues.cs",""],
-    ["src/Test/Tests/CoreInfra/SaaSChannel/SaaSChannelMockSaaS.cs",""],
-    ["src/Test/Tests/SaaSChannelTests/SaaSChannelTests.csproj",""]
-  ]'></div>
+  <h3>E2E test infra (skim only — not data-path)</h3>
+  <p style="font-size:12px;color:var(--muted);margin:4px 0 8px">Listed for reference. Bulk csproj retargets — not part of the data-path review scope.</p>
 </section>
 
 <!-- ========== SHARED ========== -->
@@ -537,6 +535,8 @@
     ["src/managed/Microsoft.Hcs/Pod/","6 files"],
     ["src/native/HcsPod/Common/UtilityHelper.h",""],
     ["src/native/HcsPod/Constants.h",""],
+    ["src/native/HcsCore/HcsCore.vcxproj","HcsCore project (WDK/toolset)"],
+    ["src/native/HcsCore/_Content/HcsCore.Counters","perf counter definitions"],
     [".pipelines/","Pipeline updates"],
     [".scripts/","Build script updates"],
     ["build_local.ps1","Top-level helper"],
