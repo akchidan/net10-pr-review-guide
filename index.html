@@ -302,6 +302,11 @@
     ["src/managed/Microsoft.Hcs/DataUpload/UploadAgent/UploadAgent.cs",""]
   ]'></div>
 
+  <h3>Managed DataValidation (1)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Microsoft.Hcs/DataValidation/DataValidationCore.cs","DV core — validates uploaded data; runs alongside upload"]
+  ]'></div>
+
   <h3>Native (10)</h3>
   <div class="file-list" data-files='[
     ["src/native/HcsPod/DataUpload/DataUploadContext.cpp",""],
@@ -407,13 +412,38 @@
 
 <!-- ========== VEDA + SANTOSH ========== -->
 <section class="page" id="veda">
-  <div class="reviewer-hdr"><div class="avatar veda">V</div><div><h1 style="margin:0">Veda</h1><div style="color:var(--muted);font-size:12.5px">DataExport + GMS (Gateway Manager Service)</div></div></div>
+  <div class="reviewer-hdr"><div class="avatar veda">V</div><div><h1 style="margin:0">Veda</h1><div style="color:var(--muted);font-size:12.5px">DataCopy + DataExport + GMS (Gateway Manager Service)</div></div></div>
   <div class="card tight">
     <span class="label">Bugs in your scope:</span>
+    <span class="pill">BUG 7 IORetry</span>
+    <span class="pill">BUG 8 HTTP/1.1</span>
     <span class="pill">BUG 11 BouncyCastle → built-in PEM</span>
     <span class="pill">BUG 15 WinRM/DeployAcs races</span>
     <span class="pill">d951d45641 ServiceModel AssemblyResolve</span>
   </div>
+
+  <h3>Managed DataCopy (7)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/CloudRecordAgent.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/DataCopyAgent.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/NativeCopyConfiguration.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyCreationParameter.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyOrchestrator.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyService.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/Helpers/DataCopyHelper.cs",""]
+  ]'></div>
+
+  <h3>Native HcsPod/DataCopy (8)</h3>
+  <div class="file-list" data-files='[
+    ["src/native/HcsPod/DataCopy/CloudEnumerator/CloudRecord.cpp",""],
+    ["src/native/HcsPod/DataCopy/CloudEnumerator/Metadata/Node/CloudRecordEnumCloudMetadata.cpp",""],
+    ["src/native/HcsPod/DataCopy/CloudEnumerator/Metadata/Shared/CloudMetadataBlobUtility.cpp",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorkItemManager.cpp",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorkItemManager.h",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorkProcessor.cpp",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorker.cpp",""],
+    ["src/native/HcsPod/DataCopy/DataExport/DataExportSMBContext.cpp","native SMB context for export path"]
+  ]'></div>
 
   <h3>GMS managed (8)</h3>
   <div class="file-list" data-files='[
@@ -427,11 +457,10 @@
     ["src/managed/Processes/Services/Microsoft.Hcs.GatewayManagerServiceLib/Microsoft.Hcs.GatewayManagerServiceLib.csproj",""]
   ]'></div>
 
-  <h3>DataExport (3)</h3>
+  <h3>DataExport tool (2)</h3>
   <div class="file-list" data-files='[
     ["src/managed/Tools/DataExportTool/DataExportTool.csproj",""],
-    ["src/managed/Tools/DataExportTool/Program.cs",""],
-    ["src/native/HcsPod/DataCopy/DataExport/DataExportSMBContext.cpp","native SMB context for export path"]
+    ["src/managed/Tools/DataExportTool/Program.cs",""]
   ]'></div>
 
   <h3>GMS deployment scripts (4) — BUG 15</h3>
