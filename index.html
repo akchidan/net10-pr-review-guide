@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>.NET 10 Upgrade — PR Review Guide</title>
+<style>
+  :root{
+    --bg:#0f1419; --panel:#161b22; --panel2:#1c232c; --border:#2a3340;
+    --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --accent2:#79c0ff;
+    --green:#3fb950; --yellow:#d29922; --red:#f85149; --purple:#bc8cff;
+    --orange:#ffa657; --code-bg:#0d1117;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;}
+  a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+  code,pre{font-family:"Cascadia Code",Consolas,Menlo,monospace;font-size:12.5px}
+  code{background:var(--code-bg);padding:1px 6px;border-radius:4px;border:1px solid var(--border)}
+  pre{background:var(--code-bg);padding:10px;border-radius:6px;border:1px solid var(--border);overflow-x:auto}
+
+  /* Layout */
+  .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+  aside{background:var(--panel);border-right:1px solid var(--border);
+    position:sticky;top:0;height:100vh;overflow-y:auto;padding:18px 14px}
+  main{padding:24px 32px;max-width:1100px}
+  h1{font-size:22px;margin:0 0 6px} h2{font-size:18px;margin:28px 0 10px;
+    padding-bottom:6px;border-bottom:1px solid var(--border)}
+  h3{font-size:15px;margin:18px 0 8px} h4{font-size:13.5px;margin:14px 0 6px;color:var(--muted)}
+  p{margin:8px 0}
+
+  /* Sidebar */
+  .brand{font-weight:600;font-size:13px;color:var(--accent2);margin-bottom:4px}
+  .sub{font-size:11px;color:var(--muted);margin-bottom:14px;line-height:1.45}
+  .nav-section{font-size:10px;text-transform:uppercase;letter-spacing:.7px;
+    color:var(--muted);margin:14px 0 4px;padding-left:6px}
+  .nav-link{display:block;padding:6px 10px;border-radius:5px;color:var(--text);
+    font-size:13px;cursor:pointer;border:1px solid transparent}
+  .nav-link:hover{background:var(--panel2);text-decoration:none}
+  .nav-link.active{background:var(--panel2);border-color:var(--border);color:var(--accent2)}
+  .nav-link .badge{float:right;font-size:10px;color:var(--muted)}
+  .search-box{width:100%;background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);padding:7px 10px;border-radius:5px;font-size:12px;margin-bottom:10px}
+
+  /* Tab pages */
+  .page{display:none;animation:fade .15s ease-out}
+  .page.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* Cards */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    padding:14px 18px;margin:12px 0}
+  .card.tight{padding:10px 14px}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0}
+  .stat{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:12px}
+  .stat .n{font-size:22px;font-weight:600;color:var(--accent2)}
+  .stat .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+
+  /* Bug cards (collapsible) */
+  details.bug{background:var(--panel);border:1px solid var(--border);border-radius:8px;
+    margin:10px 0;overflow:hidden}
+  details.bug[open]{border-color:var(--accent)}
+  details.bug>summary{padding:12px 16px;cursor:pointer;font-weight:600;
+    list-style:none;display:flex;align-items:center;gap:10px}
+  details.bug>summary::-webkit-details-marker{display:none}
+  details.bug>summary::before{content:"▸";color:var(--muted);transition:transform .15s;display:inline-block}
+  details.bug[open]>summary::before{transform:rotate(90deg)}
+  .bug-tag{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;
+    background:var(--panel2);border:1px solid var(--border);color:var(--muted)}
+  .bug-tag.managed{color:var(--accent2);border-color:#3a5a80}
+  .bug-tag.native{color:var(--orange);border-color:#7a4a20}
+  .bug-tag.test{color:var(--purple);border-color:#5a3a80}
+  .bug-tag.infra{color:var(--green);border-color:#2a6a30}
+  .bug-tag.pending{color:var(--yellow);border-color:#7a5a20}
+  .bug-body{padding:0 16px 14px;border-top:1px solid var(--border)}
+  .bug-body>div{margin-top:10px}
+  .label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);font-weight:600}
+
+  /* File rows */
+  .file-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:5px;
+    font-family:"Cascadia Code",Consolas,monospace;font-size:12px;
+    background:var(--code-bg);border:1px solid var(--border);margin:4px 0}
+  .file-row .path{flex:1;color:var(--text);word-break:break-all}
+  .file-row .note{color:var(--yellow);font-family:-apple-system,sans-serif;font-size:11.5px;font-style:italic}
+  .file-row .copy{background:var(--panel2);border:1px solid var(--border);color:var(--muted);
+    cursor:pointer;font-size:10px;padding:3px 8px;border-radius:4px}
+  .file-row .copy:hover{color:var(--text);border-color:var(--accent)}
+  .file-row .copy.copied{color:var(--green);border-color:var(--green)}
+
+  .reviewer-hdr{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--accent);
+    color:#0d1117;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:14px}
+  .avatar.parma{background:#ffa657} .avatar.kyle{background:#79c0ff}
+  .avatar.veda{background:#bc8cff} .avatar.santosh{background:#3fb950}
+
+  table{border-collapse:collapse;width:100%;margin:10px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px}
+  th{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+  tbody tr:hover{background:var(--panel2)}
+
+  ul.clean{list-style:none;padding:0;margin:6px 0}
+  ul.clean li{padding:6px 0;border-bottom:1px solid var(--border)}
+  ul.clean li:last-child{border-bottom:none}
+
+  .check{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;
+    background:var(--panel);border:1px solid var(--border);border-radius:6px;margin:6px 0;cursor:pointer}
+  .check input{margin-top:3px;cursor:pointer}
+  .check.done{opacity:.5;text-decoration:line-through}
+
+  .pill{display:inline-block;font-size:10px;padding:2px 7px;border-radius:10px;
+    background:var(--panel2);border:1px solid var(--border);color:var(--muted);margin-right:4px}
+  .pill.green{color:var(--green);border-color:#2a6a30}
+  .pill.red{color:var(--red);border-color:#7a2030}
+  .pill.yellow{color:var(--yellow);border-color:#7a5a20}
+
+  .filter-hide{display:none !important}
+
+  .hero{background:linear-gradient(135deg,#161b22,#1c232c);
+    border:1px solid var(--border);border-radius:10px;padding:22px;margin-bottom:18px}
+  .hero h1{color:var(--accent2)}
+  .meta-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+  .meta-row b{color:var(--text)}
+
+  .scroll-top{position:fixed;bottom:24px;right:24px;background:var(--panel);
+    border:1px solid var(--border);color:var(--text);padding:10px 14px;border-radius:50%;
+    cursor:pointer;font-size:16px;display:none}
+  .scroll-top.show{display:block}
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside>
+  <div class="brand">.NET 10 Upgrade</div>
+  <div class="sub">PR Review Guide<br><a href="https://msazure.visualstudio.com/One/_git/Storage-Databox-Prod/pullrequest/15438684" target="_blank">PR 15438684 →</a></div>
+  <input class="search-box" id="search" placeholder="🔍 Filter files / bugs...">
+
+  <div class="nav-section">Overview</div>
+  <a class="nav-link active" data-page="overview">Executive Summary</a>
+  <a class="nav-link" data-page="insights">Overall Insights</a>
+  <a class="nav-link" data-page="bugs">Bug Fixes <span class="badge">15</span></a>
+
+  <div class="nav-section">Reviewers</div>
+  <a class="nav-link" data-page="parma">Parma <span class="badge">DataUpload</span></a>
+  <a class="nav-link" data-page="kyle">Kyle <span class="badge">Copy Svc</span></a>
+  <a class="nav-link" data-page="veda">Veda + Santosh <span class="badge">GMS/Export</span></a>
+  <a class="nav-link" data-page="santosh">Santosh <span class="badge">Tests</span></a>
+
+  <div class="nav-section">Reference</div>
+  <a class="nav-link" data-page="shared">Shared / Cross-cutting</a>
+  <a class="nav-link" data-page="pending">Pending Items</a>
+  <a class="nav-link" data-page="checklist">Review Checklist</a>
+</aside>
+
+<main>
+
+<!-- ========== OVERVIEW ========== -->
+<section class="page active" id="overview">
+  <div class="hero">
+    <h1>.NET 10 Upgrade — PR Review Guide</h1>
+    <p>Migration of the entire Databox/Storage stack from <b>.NET Framework 4.6.2</b> to <b>.NET 10.0-windows</b>, plus recompilation of native C++ projects against modern WDK / MSVC.</p>
+    <div class="meta-row">
+      <span><b>PR:</b> <a href="https://msazure.visualstudio.com/One/_git/Storage-Databox-Prod/pullrequest/15438684" target="_blank">15438684</a></span>
+      <span><b>Source:</b> <code>feature/dotnet10</code></span>
+      <span><b>Target:</b> <code>master</code></span>
+      <span><b>Scope:</b> 454 file changes / 381 files</span>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="n">454</div><div class="l">File changes</div></div>
+    <div class="stat"><div class="n">15</div><div class="l">Behavioral bugs fixed</div></div>
+    <div class="stat"><div class="n">4</div><div class="l">Reviewer tracks</div></div>
+    <div class="stat"><div class="n">net10</div><div class="l">Target framework</div></div>
+  </div>
+
+  <h2>What's actually hard</h2>
+  <div class="card">
+    <p>The vast majority of file edits fall into a few mechanical patterns:</p>
+    <ul>
+      <li><code>&lt;TargetFramework&gt;net462&lt;/TargetFramework&gt;</code> → <code>net10.0-windows</code> in every csproj</li>
+      <li><code>RuntimeIdentifier win10-x64</code> → <code>win-x64</code></li>
+      <li><code>WindowsTargetPlatformVersion</code> made conditional (WDK 10.0.22621.0 → 10.0.26100.0 fallback)</li>
+      <li>Package upgrades for system libraries that moved out of the BCL</li>
+      <li>Removal of <code>WUApiLib</code> (Windows Update COM interop — not in .NET 10)</li>
+    </ul>
+    <p><b>The hard part is NOT the framework bump itself — it is the dozen+ behavioral incompatibilities surfaced by .NET 10 that broke data-path tests.</b> The Bug Fixes tab walks through each one.</p>
+  </div>
+
+  <h2>How to use this guide</h2>
+  <ul class="clean">
+    <li>📌 <b>Find your reviewer tab</b> in the sidebar — it lists the exact files to look at.</li>
+    <li>🐛 <b>Read the Bug Fixes you're tagged in</b> — context for why specific files changed.</li>
+    <li>🔍 <b>Use the search box</b> to jump to a file or bug.</li>
+    <li>✅ <b>Walk through the Review Checklist</b> as you go.</li>
+    <li>📋 <b>Click any file path</b> to copy it to your clipboard.</li>
+  </ul>
+</section>
+
+<!-- ========== INSIGHTS ========== -->
+<section class="page" id="insights">
+  <h1>Overall Insights</h1>
+
+  <h2>File-count breakdown</h2>
+  <table>
+    <thead><tr><th>Area</th><th style="text-align:right">Files</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/managed/Microsoft.Hcs/</code> (core library)</td><td style="text-align:right">84</td></tr>
+      <tr><td><code>src/managed/UnitTests/</code></td><td style="text-align:right">55</td></tr>
+      <tr><td><code>src/managed/Tools/</code></td><td style="text-align:right">38</td></tr>
+      <tr><td><code>src/managed/Processes/</code> (services)</td><td style="text-align:right">24</td></tr>
+      <tr><td><code>src/Test/</code> (BVT, E2E, PodTests, MockSaas)</td><td style="text-align:right">76</td></tr>
+      <tr><td><code>src/native/</code> (C++)</td><td style="text-align:right">55</td></tr>
+      <tr><td><code>src/services/</code> (DV filter, drivers)</td><td style="text-align:right">14</td></tr>
+      <tr><td><code>src/tools/</code>, <code>src/install/</code>, <code>src/Scripts/</code></td><td style="text-align:right">24</td></tr>
+      <tr><td>Pipelines (<code>.pipelines/</code>, <code>.scripts/</code>)</td><td style="text-align:right">14</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Critical infrastructure changes</h2>
+  <p style="color:var(--muted);font-size:12.5px">Everyone should skim these once.</p>
+  <table>
+    <thead><tr><th>File</th><th>Why it matters</th></tr></thead>
+    <tbody>
+      <tr><td><code>src/Directory.Build.props</code></td><td>Single source of truth — target framework, RID, WDK auto-detect, sign-mode tweaks. Every project inherits this.</td></tr>
+      <tr><td><code>src/Directory.Build.Targets</code></td><td>Conditional toolset selection (net10 vs net462).</td></tr>
+      <tr><td><code>src/managed/Microsoft.Hcs/Microsoft.Hcs.csproj</code></td><td>Removed WUApiLib, BouncyCastle; upgraded WCF 4.3 → 6.2; added many System.* 9.0.0 packages.</td></tr>
+      <tr><td><code>src/StorSimple.sln</code></td><td>Solution refresh for VS 2022/2026 compat.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Library / package upgrades</h2>
+  <div class="card">
+    <ul class="clean">
+      <li><b>WCF (System.ServiceModel.*) 4.3.x → 6.2.0</b> — major jump; client APIs changed signatures. Watch <code>ChannelFactory</code>, <code>MessageVersion</code>.</li>
+      <li><b>BouncyCastle.Cryptography removed</b> — PEM export now uses built-in <code>System.Security.Cryptography</code> APIs.</li>
+      <li><b>WUApiLib removed</b> — gone in .NET 10. ~25 files excluded from compilation under <code>Microsoft.Hcs/Update/</code> and <code>Microsoft.Hcs/Setup/Service/</code>.</li>
+      <li><b>System.Threading.Tasks.Dataflow 4.7.0 → 8.0.0</b> — newer dataflow blocks (DataUpload pipeline).</li>
+      <li><b>System.DirectoryServices 7.0.x</b> — was a GAC reference, now a NuGet package.</li>
+      <li><b>System.ServiceModel AssemblyResolve shim</b> — added to GMS startup for transitive references (commit <code>d951d45641</code>).</li>
+    </ul>
+  </div>
+
+  <h2>Native C++ changes</h2>
+  <div class="card">
+    <ul class="clean">
+      <li>WDK <code>10.0.22621.0</code> → <code>10.0.26100.0</code> fallback in <code>Directory.Build.props</code></li>
+      <li>Toolset auto-select: VS 2022 stays on <code>v143</code>, VS 2026+ gets <code>v145</code></li>
+      <li><code>ucrtbased.dll</code> path issue documented in new <code>DevSetup.md</code></li>
+      <li>Several P/Invoke bool signatures fixed (see BUG 9)</li>
+    </ul>
+  </div>
+
+  <h2>Test infrastructure</h2>
+  <div class="card">
+    <ul class="clean">
+      <li>New unit-test pipeline <b>POD_UT_NET10</b> (ID 449371) — runs against .NET 10 binaries</li>
+      <li><code>Microsoft.Hcs.UnitTests.csproj</code> retargeted to <code>net10.0-windows-x64</code></li>
+      <li>xUnit + runner versions bumped; isolation logic changed in <code>runtest.ps1</code></li>
+      <li>MockSaaS infra updated for new ServiceBus client behavior</li>
+      <li>New helpers added: <code>MockSaasLogHelper.cs</code>, <code>DevSetup.md</code>, local build scripts</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ========== BUGS ========== -->
+<section class="page" id="bugs">
+  <h1>Bug Fixes — Behavioral Incompatibilities & Race Conditions</h1>
+  <p>These are the non-mechanical fixes. Each is a real bug surfaced because .NET 10 behaves differently from .NET FW 4.6.2.</p>
+
+  <div id="bugs-list"></div>
+</section>
+
+<!-- ========== PARMA ========== -->
+<section class="page" id="parma">
+  <div class="reviewer-hdr"><div class="avatar parma">P</div><div><h1 style="margin:0">Parma</h1><div style="color:var(--muted);font-size:12.5px">DataUpload — managed + native</div></div></div>
+  <div class="card tight">
+    <span class="label">Bugs in your scope:</span>
+    <span class="pill">BUG 6 AddWorkItem deadlock</span>
+    <span class="pill">BUG 7 IORetry strategy</span>
+    <span class="pill">BUG 8 HTTP/1.1 pin</span>
+  </div>
+
+  <h3>Managed (9)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Microsoft.Hcs/DataUpload/DataUploadEndpointCreation.cs",""],
+    ["src/managed/Microsoft.Hcs/DataUpload/DataUploadEndpointFactory.cs",""],
+    ["src/managed/Microsoft.Hcs/DataUpload/DataUploadErrorMapper.cs",""],
+    ["src/managed/Microsoft.Hcs/DataUpload/DataUploadExceptions.cs",""],
+    ["src/managed/Microsoft.Hcs/DataUpload/DataUploadOrchestrator.cs","check error-mapping + retry for HTTP/2 → HTTP/1.1 changes"],
+    ["src/managed/Microsoft.Hcs/DataUpload/DataUploadService.cs",""],
+    ["src/managed/Microsoft.Hcs/DataUpload/Helpers/DataUploadHelper.cs",""],
+    ["src/managed/Microsoft.Hcs/DataUpload/UploadAgent/NativeUploadConfiguration.cs",""],
+    ["src/managed/Microsoft.Hcs/DataUpload/UploadAgent/UploadAgent.cs",""]
+  ]'></div>
+
+  <h3>Native (10)</h3>
+  <div class="file-list" data-files='[
+    ["src/native/HcsPod/DataUpload/DataUploadContext.cpp",""],
+    ["src/native/HcsPod/DataUpload/DataUploadContext.h",""],
+    ["src/native/HcsPod/DataUpload/DataUploadFileContext.cpp",""],
+    ["src/native/HcsPod/DataUpload/DataUploadManagedDisk.cpp","null-guard fix for UT-mode crash (3490df1fbf, reverted by d04df8325c); confirm final state"],
+    ["src/native/HcsPod/DataUpload/DataUploadNativeException.cpp",""],
+    ["src/native/HcsPod/DataUpload/DataUploadProcessWork.cpp",""],
+    ["src/native/HcsPod/DataUpload/DataUploadWorkItemManager.cpp","BUG 6 lock reorder"],
+    ["src/native/HcsPod/DataUpload/DataUploadWorkItemManager.h",""],
+    ["src/native/HcsPod/DataUpload/DataUploadWorker.cpp",""],
+    ["src/native/HcsPod/DataUpload/DataUploadWorker.h",""]
+  ]'></div>
+
+  <h3>Tool (2)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Tools/DataUploadPerf/DataUploadPerf.csproj",""],
+    ["src/managed/Tools/DataUploadPerf/Program.cs",""]
+  ]'></div>
+</section>
+
+<!-- ========== KYLE ========== -->
+<section class="page" id="kyle">
+  <div class="reviewer-hdr"><div class="avatar kyle">K</div><div><h1 style="margin:0">Kyle</h1><div style="color:var(--muted);font-size:12.5px">Copy Service — DataIngestion + DataCopy + FileRecord</div></div></div>
+  <div class="card tight">
+    <span class="label">Bugs in your scope:</span>
+    <span class="pill">BUG 1 SEHException</span>
+    <span class="pill">BUG 7 IORetry</span>
+    <span class="pill">BUG 8 HTTP/1.1</span>
+    <span class="pill">BUG 9 bool P/Invoke</span>
+    <span class="pill">BUG 10 URI encoding</span>
+  </div>
+
+  <h3>Managed DataIngestion (6)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Microsoft.Hcs/DataIngestion/DataIngestionErrorMapper.cs",""],
+    ["src/managed/Microsoft.Hcs/DataIngestion/DataIngestionExceptions.cs",""],
+    ["src/managed/Microsoft.Hcs/DataIngestion/DataIngestionOrchestrator.cs","BUG 1 — confirm IsHalted short-circuit"],
+    ["src/managed/Microsoft.Hcs/DataIngestion/DataIngestionService.cs",""],
+    ["src/managed/Microsoft.Hcs/DataIngestion/IngestionAgent/DataIngestionAgent.cs",""],
+    ["src/managed/Microsoft.Hcs/DataIngestion/IngestionAgent/IngestionNativeConfiguration.cs",""]
+  ]'></div>
+
+  <h3>Managed DataCopy (7)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/CloudRecordAgent.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/DataCopyAgent.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyAgent/NativeCopyConfiguration.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyCreationParameter.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyOrchestrator.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/DataCopyService.cs",""],
+    ["src/managed/Microsoft.Hcs/DataCopy/Helpers/DataCopyHelper.cs",""]
+  ]'></div>
+
+  <h3>Managed FileRecord (1)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Microsoft.Hcs/FileRecord/FileRecord.cs","BUG 3 (ReadExactly) + BUG 9 (bool P/Invoke marshaling)"]
+  ]'></div>
+
+  <h3>Native DataIngestion (3)</h3>
+  <div class="file-list" data-files='[
+    ["src/native/HcsPod/DataIngestion/DataIngestionWorkItemManager.cpp",""],
+    ["src/native/HcsPod/DataIngestion/DataIngestionWorkItemManager.h",""],
+    ["src/native/HcsPod/DataIngestion/DataIngestionWorker.cpp",""]
+  ]'></div>
+
+  <h3>Native DataCopy (8)</h3>
+  <div class="file-list" data-files='[
+    ["src/native/HcsPod/DataCopy/CloudEnumerator/CloudRecord.cpp",""],
+    ["src/native/HcsPod/DataCopy/CloudEnumerator/Metadata/Node/CloudRecordEnumCloudMetadata.cpp",""],
+    ["src/native/HcsPod/DataCopy/CloudEnumerator/Metadata/Shared/CloudMetadataBlobUtility.cpp",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorkItemManager.cpp",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorkItemManager.h",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorkProcessor.cpp",""],
+    ["src/native/HcsPod/DataCopy/DataCopyWorker.cpp",""]
+  ]'></div>
+
+  <h3>Native FileRecord (4)</h3>
+  <div class="file-list" data-files='[
+    ["src/native/HcsPod/FileRecord/FileRecord.cpp",""],
+    ["src/native/HcsPod/FileRecord/FileRecord.h",""],
+    ["src/native/HcsPod/FileRecord/FileRecordEnumCloudMetadata.cpp",""],
+    ["src/native/HcsPod/FileRecord/ManifestRecord.cpp",""]
+  ]'></div>
+
+  <h3>Tool (2)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Tools/DataIngestionTool/DataIngestionTool.csproj",""],
+    ["src/managed/Tools/DataIngestionTool/Program.cs",""]
+  ]'></div>
+</section>
+
+<!-- ========== VEDA + SANTOSH ========== -->
+<section class="page" id="veda">
+  <div class="reviewer-hdr"><div class="avatar veda">V</div><div><h1 style="margin:0">Veda + Santosh</h1><div style="color:var(--muted);font-size:12.5px">DataExport + GMS (Gateway Manager Service)</div></div></div>
+  <div class="card tight">
+    <span class="label">Bugs in your scope:</span>
+    <span class="pill">BUG 11 BouncyCastle → built-in PEM</span>
+    <span class="pill">BUG 15 WinRM/DeployAcs races</span>
+    <span class="pill">d951d45641 ServiceModel AssemblyResolve</span>
+  </div>
+
+  <h3>GMS managed (8)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Processes/Services/GatewayManagerService/GatewayManagerService.cs","d951d45641 — AssemblyResolve redirect for System.ServiceModel on .NET 10"],
+    ["src/managed/Processes/Services/GatewayManagerService/GatewayManagerService.csproj","Newtonsoft.Json dedup (2fbd65f56b)"],
+    ["src/managed/Processes/Services/GatewayManagerService/_Content/WDS-InRackImaging/WDS-InRackImaging.psd1",""],
+    ["src/managed/Processes/Services/GatewayManagerService/_Content/psShellAccess/HcsAccessModule.psd1",""],
+    ["src/managed/Processes/Services/Microsoft.Hcs.GatewayManagerServiceLib/Infra/AzureUtil.cs",""],
+    ["src/managed/Processes/Services/Microsoft.Hcs.GatewayManagerServiceLib/Infra/CryptoUtil.cs","BUG 11 — BouncyCastle removed; PEM export uses built-in APIs"],
+    ["src/managed/Processes/Services/Microsoft.Hcs.GatewayManagerServiceLib/Infra/SaasClient.cs",""],
+    ["src/managed/Processes/Services/Microsoft.Hcs.GatewayManagerServiceLib/Microsoft.Hcs.GatewayManagerServiceLib.csproj",""]
+  ]'></div>
+
+  <h3>DataExport (3)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Tools/DataExportTool/DataExportTool.csproj",""],
+    ["src/managed/Tools/DataExportTool/Program.cs",""],
+    ["src/native/HcsPod/DataCopy/DataExport/DataExportSMBContext.cpp","native SMB context for export path"]
+  ]'></div>
+
+  <h3>GMS deployment scripts (4) — BUG 15</h3>
+  <div class="file-list" data-files='[
+    ["src/Test/testbuild/_Content/GmsDeploy/GmsDeployConstants.psm1",""],
+    ["src/Test/testbuild/_Content/GmsDeploy/GmsDeployHelper.psm1",""],
+    ["src/Test/testbuild/_Content/GmsDeploy/GmsMockSaasDeployHelper.psm1",""],
+    ["src/Test/testbuild/_Content/GmsDeploy/VMMockSaasHelper.psm1",""]
+  ]'></div>
+
+  <h3>Related services (skim)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/Processes/Services/Microsoft.Hcs.PodInfrastructureService/","6 files — PodInfra service, hosts GMS"],
+    ["src/managed/Processes/Services/Microsoft.Hcs.SupportSession/","2 files"],
+    ["src/managed/Processes/Services/Microsoft.Hcs.SecretsTokenMgrLib/","2 files"]
+  ]'></div>
+</section>
+
+<!-- ========== SANTOSH (TESTS) ========== -->
+<section class="page" id="santosh">
+  <div class="reviewer-hdr"><div class="avatar santosh">S</div><div><h1 style="margin:0">Santosh</h1><div style="color:var(--muted);font-size:12.5px">All Test Changes — UTs + BVTs + DSTs + MockSaaS</div></div></div>
+  <div class="card tight">
+    <span class="label">Bugs in your scope:</span>
+    <span class="pill">BUG 2 DataIngestion timing</span>
+    <span class="pill">BUG 4/5 FsLib deadlock + ns</span>
+    <span class="pill">BUG 12 X509Cert obsolete</span>
+    <span class="pill">BUG 14 SaaS timeout</span>
+  </div>
+
+  <h3>Unit Tests — Pod / DataPath (12)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/CloudRecordTests.cs","BUG 8 (HTTP/1.1 pin)"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataCopyDiskTests.cs","parallelism fix (18ab08b69e) — unique metadata paths"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataCopyHeavyTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataCopyTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataIngestionTests.cs","BUG 2 — poll for JobStatus.Started"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataUploadTest.cs","PFP V2 test disabled; re-enable after 2026-05-19"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataValidation/DataValidationPodPolicyTests.cs","BUG 10 (URI encoding)"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/FileRecordTest.cs","Read partial-count handling"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/HcsPodTestBase.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/PodCleanupTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/PodNative/AzureCloudStorageTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/Helper/","4 helpers"]
+  ]'></div>
+
+  <h3>Unit Tests — Management / Infra (10+)</h3>
+  <div class="file-list" data-files='[
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Management/PodManagementServiceTests.cs","BUG 14 (timeout bump)"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Management/ManagementServiceTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/CloudStorage/CloudAccess/CloudAccessTest.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Configuration/MinConfigurationTest.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Core/Fabric/FabricUnitTestBase.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Core/ServiceBus/HcsServiceBusTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Dbx/StorageMgmtVmTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/HcsTest.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Misc/InstantiatorTest.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/SlotManagement/SlotMgmtTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Statistics/FilePersistedCounterTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Storage/AccessPointFactoryTest.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/SupportPackage/SupportPackageImmutabilityTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Test/DataCopyValidationLibraryTests.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/TestBase.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Update/UpdateTestUtils.cs",""],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/Microsoft.Hcs.UnitTests.csproj","target framework + package upgrades"],
+    ["src/managed/UnitTests/Microsoft.Hcs.UnitTests/_Content/runtest.ps1",""]
+  ]'></div>
+
+  <h3>BVTs (6) — src/Test/PodTests/BVTs/</h3>
+  <div class="file-list" data-files='[
+    ["src/Test/PodTests/BVTs/DataExportBVT.cs",""],
+    ["src/Test/PodTests/BVTs/DataExportHeavyBVT.cs",""],
+    ["src/Test/PodTests/BVTs/DatauploadBVT.cs",""],
+    ["src/Test/PodTests/BVTs/PodBVT.cs",""],
+    ["src/Test/PodTests/BVTs/PowershellDirectBVT.cs","BUG 12 (X509CertificateLoader replacement)"],
+    ["src/Test/PodTests/BVTs/PodTests.csproj",""]
+  ]'></div>
+
+  <h3>Native test — HcsPodTest (3)</h3>
+  <div class="file-list" data-files='[
+    ["src/native/HcsPodTest/FilerecordTests/FileRecordTests.cpp","BUG 4 + BUG 5 (FsLib deadlock + namespace), DifferentTestCases level reduction"],
+    ["src/native/HcsPodTest/FsLibTests/FsLibTests.cpp","BUG 4 (FsLibCleanup removal)"],
+    ["src/native/HcsPodTest/HcsPodTest.vcxproj",""]
+  ]'></div>
+
+  <h3>MockSaaS (12) — src/Test/Common/Infra/Saas/</h3>
+  <div class="file-list" data-files='[
+    ["MockSaasInfra/AzureServiceBusSettings.json",""],
+    ["MockSaasInfra/CommunicationBus.cs",""],
+    ["MockSaasInfra/MessageValidationEngine.cs",""],
+    ["MockSaasInfra/MockSaasInfra.csproj",""],
+    ["MockSaasInfra/MockSaasLogHelper.cs","new"],
+    ["MockSaasInfra/SaasCoreHandler.cs",""],
+    ["MockSaasInfra/SendMessageHelper.cs",""],
+    ["MockSaasInfra/ServiceBusInfo.cs",""],
+    ["MockSaasInfra/ServiceBusRestClient.cs",""],
+    ["MockSaasSdk/MockSaasSdk.csproj",""],
+    ["MockSaasSdk/MockSaasSdkImpl.cs",""],
+    ["MockSaasSdk/StaticConfiguration.cs",""]
+  ]'></div>
+
+  <h3>E2E / SaaS Channel (6)</h3>
+  <div class="file-list" data-files='[
+    ["src/Test/DataboxE2E/Microsoft.DataBox.E2E.Tests/",""],
+    ["src/Test/DataboxE2E/Microsoft.Databox.SaaSCommunicationHelper/SaaSOperationsHelper.cs",""],
+    ["src/Test/DataboxE2E/Microsoft.Databox.SaaSCommunicationHelper/TestValues.cs",""],
+    ["src/Test/Tests/CoreInfra/SaaSChannel/SaaSChannelMockSaaS.cs",""],
+    ["src/Test/Tests/SaaSChannelTests/SaaSChannelTests.csproj",""]
+  ]'></div>
+</section>
+
+<!-- ========== SHARED ========== -->
+<section class="page" id="shared">
+  <h1>Shared / Cross-cutting</h1>
+  <p style="color:var(--muted)">Everyone should skim once — no deep review needed unless flagged. Validated by .NET 10 CI pipeline.</p>
+  <div class="file-list" data-files='[
+    ["src/Directory.Build.props","Single source of truth for migration"],
+    ["src/Directory.Build.Targets","Toolset selection"],
+    ["src/managed/Microsoft.Hcs/Microsoft.Hcs.csproj","Package changes — see Insights"],
+    ["src/managed/Microsoft.Hcs/_Content/","18 files — bin-deployed configs"],
+    ["src/managed/Microsoft.Hcs/Core/","9 files — base library"],
+    ["src/managed/Microsoft.Hcs/Pod/","6 files"],
+    ["src/native/HcsPod/Common/UtilityHelper.h",""],
+    ["src/native/HcsPod/Constants.h",""],
+    [".pipelines/","Pipeline updates"],
+    [".scripts/","Build script updates"],
+    ["build_local.ps1","Top-level helper"],
+    ["run_test.ps1","Top-level helper"],
+    ["DevSetup.md","new"]
+  ]'></div>
+</section>
+
+<!-- ========== PENDING ========== -->
+<section class="page" id="pending">
+  <h1>Pending Items <span class="pill yellow">non-blocking</span></h1>
+  <p>Known and tracked. <b>Not blocking this PR.</b></p>
+
+  <div class="card">
+    <h3>1. DataUploadJobProvisionedV2PremiumFileShare — disabled</h3>
+    <p>Temporarily disabled in <code>DataUploadTest.cs:330-335</code>. Storage account <code>poduttestpremium2091725</code> hit provisioned-share quota due to soft-deleted shares.</p>
+    <p><b>Action:</b> Re-enable after <b>2026-05-19</b> when 14-day soft-delete retention expires — uncomment <code>[Fact]</code> + 5 <code>[Trait(...)]</code> lines.</p>
+  </div>
+
+  <div class="card">
+    <h3>2. SaaSPrepareDeviceForCustomerShipmentMultiThread — timeout bumped</h3>
+    <p>Three concurrent threads contend on <code>DevTestSdk.Instance</code> singleton; consistently slower on .NET 10. Currently mitigated with 20-min timeout.</p>
+    <p><b>Action:</b> Root-cause investigation pending — lock contention or initialization on the singleton.</p>
+  </div>
+
+  <div class="card">
+    <h3>3. Stuck-job timeouts in CI</h3>
+    <p><code>DataCopyMultiDiskSameContainer</code> and <code>DataUploadJobWithBlockBlobFolders</code> — both fail with "job stuck in Started for 600s". Likely a native worker-progress issue on .NET 10.</p>
+    <p><b>Action:</b> Under investigation.</p>
+  </div>
+</section>
+
+<!-- ========== CHECKLIST ========== -->
+<section class="page" id="checklist">
+  <h1>Review Checklist</h1>
+  <p>For each file you review, confirm:</p>
+  <div id="checks"></div>
+  <p style="margin-top:18px;color:var(--muted);font-size:12px"><i>Generated for PR 15438684 review. Questions? Ping @akchidan.</i></p>
+</section>
+
+</main>
+</div>
+
+<button class="scroll-top" id="scrollTop" title="Back to top">↑</button>
+
+<script>
+const BUGS = [
+  {n:1, tag:'managed', title:'DataIngestion: SEHException swallowed as failure instead of cancel',
+   file:'src/managed/Microsoft.Hcs/DataIngestion/DataIngestionOrchestrator.cs',
+   what:'When a cancel token fires during native ingestion work, .NET 10 surfaces an <code>SEHException</code> (raw structured exception) instead of the managed <code>JobHaltedException</code> that 4.6.2 produced. The orchestrator catch block only checked <code>ex is JobHaltedException</code>, so SEHException fell to the failure path → job ended as <b>Failed</b> instead of <b>Cancelled</b>.',
+   fix:'Changed condition to <code>if (ex is JobHaltedException || control.IsHalted)</code>. Added a <code>ProcessJobStatus(state, control)</code> overload that skips error-counter processing when <code>control.HaltType == Cancel</code>.',
+   rationale:'<code>control.IsHalted</code> is the authoritative cancellation signal; exception type alone is unreliable across runtimes.'},
+  {n:2, tag:'test', title:'DataIngestion test timing races',
+   file:'src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataIngestionTests.cs',
+   what:'Tests used a random 2–5s sleep before issuing cancel/pause. On .NET 10, native work items complete faster — job sometimes finished before cancel arrived.',
+   fix:'Replaced sleep with polling loop that waits for <code>JobStatus.Started</code> (30s timeout, 200ms interval).',
+   rationale:'Time-based synchronization is fragile; gate on actual state.'},
+  {n:3, tag:'managed', title:'FileRecord.GetNextFileRecord partial-read assertion',
+   file:'src/managed/Microsoft.Hcs/FileRecord/FileRecord.cs:~708',
+   what:'.NET 10 <code>FileStream.Read()</code> may return a partial count (0 &lt; n &lt; buffer.Length) when I/O error is injected. Assertion <code>count == 0 || count == _readData.Length</code> broke → <code>InvalidProgramException</code>.',
+   fix:'Replaced <code>Stream.Read()</code> with <code>Stream.ReadExactly()</code> (.NET 7+) wrapped in <code>EndOfStreamException</code> → <code>count=0</code>.',
+   rationale:'<code>ReadExactly</code> is the standard modern replacement for the "loop until I get all bytes or hit EOF" pattern.'},
+  {n:4, tag:'native', title:'Native FsLib re-init deadlock',
+   file:'src/native/HcsPodTest/FilerecordTests/FileRecordTests.cpp + FsLibTests/FsLibTests.cpp',
+   what:'<code>FsLibCleanup()</code> does not synchronously quiesce FsLib threads/IO-completion port on .NET 10. The next <code>FsLibInitialize()</code> in another test class deadlocks. On 4.6.2 threads drained in time by chance.',
+   fix:'Removed all <code>FsLibCleanup()</code> calls between tests. Guarded each <code>FsLibInitialize()</code> with <code>if (!FsLibIsInitialized())</code>.',
+   rationale:'Per-test cleanup is unnecessary — the only consumer was the next test, and re-init on already-initialized FsLib is a no-op.'},
+  {n:5, tag:'native', title:'Native FsLib namespace state contamination',
+   file:'src/native/HcsPodTest/FilerecordTests/FileRecordTests.cpp',
+   what:'FsLib mock mode caches metadata namespaces in memory by path. Without per-test cleanup (BUG 4), later tests reusing <code>HcsTest\\endpoint</code> saw stale entries → <code>count != numFilesAndDirs/3</code> assertion crash.',
+   fix:'Added <code>static int32_t s_testRunCounter</code>; each <code>TestInit()</code> appends <code>_N</code> to the path. Every test gets an isolated namespace.',
+   rationale:'Path uniqueness is the cleanest isolation primitive when the in-memory cache cannot be wiped.'},
+  {n:6, tag:'native', title:'Native AddWorkItem deadlock (ForceReUpload hang)',
+   file:'src/native/HcsPod/DataUpload/DataUploadWorkItemManager.cpp',
+   what:'Race in native work-item enqueue path caused ForceReUpload jobs to hang indefinitely on .NET 10. Lock ordering changed subtly under newer CRT scheduling.',
+   fix:'Reordered lock acquisition; reduced critical-section scope.',
+   rationale:'Smaller critical sections are less prone to ordering bugs and align with modern lock-free patterns.'},
+  {n:7, tag:'managed', title:'IOExceptionRetryStrategy ignored HcsException.IsRetryable',
+   file:'src/managed/Microsoft.Hcs/ (commit 2dc65f075f)',
+   what:'Retry strategy unconditionally retried on IOException, ignoring whether wrapped <code>HcsException</code> had <code>IsRetryable=false</code>. Non-retryable Azure Storage errors spun in retry loops on .NET 10.',
+   fix:'Strategy now checks <code>HcsException.IsRetryable</code> before retrying. Also fixed a PPL continuation cleanup leak.',
+   rationale:'Honoring existing <code>IsRetryable</code> flag is correct behavior; old code accidentally worked on 4.6.2 because transient failures resolved before retry budget exhausted.'},
+  {n:8, tag:'managed', title:'HTTP/1.1 pinning for Azure Storage SharedKey auth',
+   file:'CloudRecordTests.cs, ObjStore callsites, all BlobServiceClient creation sites',
+   what:'.NET 10 defaults to HTTP/2 for outbound HTTPS, but Azure Storage SharedKey auth signs canonicalized HTTP/1.1 headers. HTTP/2 caused <code>AuthorizationFailure</code> 403s on every Storage call.',
+   fix:'Pinned <code>Version = HttpVersion.Version11</code> on HttpClient used by BlobServiceClient / ShareServiceClient.',
+   rationale:'Azure Storage SDK known limitation — invisible until you upgrade to a runtime that prefers HTTP/2.'},
+  {n:9, tag:'managed', title:'Bool P/Invoke marshaling for FsLib + FileRecord',
+   file:'src/managed/Microsoft.Hcs/FileRecord/FileRecord.cs + FsLib interop',
+   what:'Native functions returning <code>bool</code> — .NET 10 changed default P/Invoke bool marshaling. High 3 bytes of return register are now garbage instead of zeroed. Managed <code>bool</code> read as <code>true</code> even for native <code>false</code>.',
+   fix:'Added explicit <code>[MarshalAs(UnmanagedType.I1)]</code> on return types.',
+   rationale:'Explicit marshaling is the safe long-term answer — historical "it just worked" was an implementation detail of the old marshaler.'},
+  {n:10, tag:'test', title:'DVPodPolicy URI tests (Uri.EscapeDataString change)',
+   file:'src/managed/UnitTests/Microsoft.Hcs.UnitTests/Pod/DataValidation/DataValidationPodPolicyTests.cs',
+   what:'.NET 10 changed <code>Uri.EscapeDataString</code> percent-encoding (RFC 3986 stricter compliance). Test expectations had to be updated.',
+   fix:'Updated expected URI strings to match new behavior.',
+   rationale:'Tests now lock in spec-compliant behavior.'},
+  {n:11, tag:'managed', title:'Bouncy Castle PEM export → built-in APIs',
+   file:'src/managed/Microsoft.Hcs/ + GMS CryptoUtil.cs',
+   what:'BouncyCastle was used to export PEM-encoded keys/certs. .NET 7+ has built-in <code>ExportRSAPrivateKeyPem</code> / <code>ExportCertificatePem</code>.',
+   fix:'Replaced BouncyCastle calls with built-in equivalents; removed <code>BouncyCastle.Cryptography</code> from <code>Microsoft.Hcs.csproj</code>.',
+   rationale:'One fewer third-party dependency; built-in APIs are FIPS-aligned.'},
+  {n:12, tag:'test', title:'X509Certificate2(byte[]) obsolete (SYSLIB0057)',
+   file:'src/Test/PodTests/BVTs/PowershellDirectBVT.cs',
+   what:'<code>X509Certificate2(byte[] rawData)</code> obsolete in .NET 9+; emits SYSLIB0057.',
+   fix:'Switched to <code>X509CertificateLoader.LoadPkcs12</code>.',
+   rationale:'Modern API, avoids future removal.'},
+  {n:13, tag:'native', title:'Native ManagedProbeReturnValue uninitialized',
+   file:'src/native/HcsPod/',
+   what:'Uninitialized C++ member caused monitor thread crash when read on .NET 10. Old MSVC happened to zero it; modern toolset doesn\u2019t.',
+   fix:'Explicit initialization in constructor + cleanup of leftover VHDs from prior runs.',
+   rationale:'Always initialize.'},
+  {n:14, tag:'pending', title:'SaaSPrepareDeviceForCustomerShipmentMultiThread timeout',
+   file:'src/managed/UnitTests/Microsoft.Hcs.UnitTests/Management/PodManagementServiceTests.cs',
+   what:'Three concurrent threads contend on <code>DevTestSdk.Instance</code> singleton on .NET 10; consistently slower than 4.6.2. Test was hitting CI 5-min cap.',
+   fix:'Bumped per-test timeout 5m → 20m as a stopgap.',
+   rationale:'<b>PENDING:</b> Root cause is <code>DevTestSdk</code> singleton lock contention — investigation needed.'},
+  {n:15, tag:'infra', title:'WinRM / DeployAcs race conditions',
+   file:'Multiple deployment scripts',
+   what:'WinRM and PowerShell session setup hit races / handle-leaks on .NET 10 + newer PowerShell.',
+   fix:'Added <code>-NoServiceRestart</code>, capped <code>New-PSSession</code> timeouts, fixed <code>RegistryKey</code> handle leak blocking <code>reg unload</code>, removed retry-restarts in setup.',
+   rationale:'Each was a real latent bug exposed by changed scheduling on .NET 10.'}
+];
+
+const CHECKS = [
+  'Target framework / RID update is consistent with Directory.Build.props',
+  'Removed packages (WUApiLib, BouncyCastle, old System.* 4.3.x refs) aren\u2019t re-introduced',
+  'No new Stream.Read() patterns that assume full-buffer read — use ReadExactly()',
+  'Cancellation paths check IsHalted / CancellationToken, not just exception type',
+  'Native bool returns marshaled with [MarshalAs(UnmanagedType.I1)]',
+  'BlobServiceClient / ShareServiceClient creation pins HTTP/1.1',
+  'Test timing uses polling on actual state, not sleep',
+  'FsLib calls don\u2019t reintroduce FsLibCleanup() between tests in the same process',
+  'Native test paths are unique per test (counter or GUID suffix)',
+  'No obsolete APIs (X509Certificate2 byte[] ctor, etc.) — use modern replacements',
+  'csproj package versions match what\u2019s used elsewhere in the repo (avoid drift)'
+];
+
+// Render bugs
+const bugsList = document.getElementById('bugs-list');
+BUGS.forEach(b => {
+  const d = document.createElement('details');
+  d.className = 'bug';
+  d.dataset.search = (b.title + ' ' + b.file + ' ' + b.what).toLowerCase();
+  d.innerHTML = `
+    <summary>
+      <span class="bug-tag ${b.tag}">BUG ${b.n}</span>
+      <span class="bug-tag ${b.tag}">${b.tag}</span>
+      <span style="flex:1">${b.title}</span>
+    </summary>
+    <div class="bug-body">
+      <div><span class="label">File</span><div><code>${b.file}</code></div></div>
+      <div><span class="label">What happened</span><div>${b.what}</div></div>
+      <div><span class="label">Fix</span><div>${b.fix}</div></div>
+      <div><span class="label">Rationale</span><div>${b.rationale}</div></div>
+    </div>`;
+  bugsList.appendChild(d);
+});
+
+// Render file rows
+document.querySelectorAll('.file-list').forEach(list => {
+  const files = JSON.parse(list.dataset.files);
+  files.forEach(([path, note]) => {
+    const row = document.createElement('div');
+    row.className = 'file-row';
+    row.dataset.search = (path + ' ' + note).toLowerCase();
+    row.innerHTML = `
+      <span class="path">${path}</span>
+      ${note ? `<span class="note">— ${note}</span>` : ''}
+      <button class="copy" title="Copy path">copy</button>`;
+    row.querySelector('.copy').onclick = e => {
+      navigator.clipboard.writeText(path);
+      e.target.textContent = '✓ copied';
+      e.target.classList.add('copied');
+      setTimeout(() => { e.target.textContent = 'copy'; e.target.classList.remove('copied'); }, 1500);
+    };
+    list.appendChild(row);
+  });
+});
+
+// Render checklist
+const checksDiv = document.getElementById('checks');
+CHECKS.forEach((c, i) => {
+  const label = document.createElement('label');
+  label.className = 'check';
+  label.innerHTML = `<input type="checkbox" data-i="${i}"> <span>${c}</span>`;
+  const cb = label.querySelector('input');
+  if (localStorage.getItem('chk_'+i) === '1') { cb.checked = true; label.classList.add('done'); }
+  cb.onchange = () => {
+    label.classList.toggle('done', cb.checked);
+    localStorage.setItem('chk_'+i, cb.checked ? '1' : '0');
+  };
+  checksDiv.appendChild(label);
+});
+
+// Tab navigation
+document.querySelectorAll('.nav-link').forEach(link => {
+  link.onclick = () => {
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    link.classList.add('active');
+    document.getElementById(link.dataset.page).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+    location.hash = link.dataset.page;
+  };
+});
+if (location.hash) {
+  const link = document.querySelector(`.nav-link[data-page="${location.hash.slice(1)}"]`);
+  if (link) link.click();
+}
+
+// Search filter
+document.getElementById('search').oninput = e => {
+  const q = e.target.value.toLowerCase().trim();
+  document.querySelectorAll('.file-row, details.bug').forEach(el => {
+    if (!q || el.dataset.search.includes(q)) el.classList.remove('filter-hide');
+    else el.classList.add('filter-hide');
+  });
+  if (q) {
+    document.querySelectorAll('details.bug').forEach(d => d.open = !d.classList.contains('filter-hide'));
+  }
+};
+
+// Scroll-to-top
+const scrollBtn = document.getElementById('scrollTop');
+window.onscroll = () => scrollBtn.classList.toggle('show', window.scrollY > 400);
+scrollBtn.onclick = () => window.scrollTo({top:0, behavior:'smooth'});
+</script>
+</body>
+</html>
